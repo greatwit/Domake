@@ -3,7 +3,11 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <io.h>
+#include <iostream>
+#include <direct.h>
 
+using namespace std;
 
 int cloneFile(char *srcFile, char* destFile) {
 	FILE *prFile = NULL, *pwFile = NULL;
@@ -65,14 +69,88 @@ bool decideSuffix( char* filePath, char* suffix )
 		return false;
 }
 
+void listFiles(const char * dir)
+{
+	intptr_t handle;
+	_finddata_t findData;
+
+	handle = _findfirst(dir, &findData);    // 查找目录中的第一个文件
+	if (handle == -1)
+	{
+		cout << "Failed to find first file!\n";
+		return;
+	}
+
+	do
+	{
+		if (findData.attrib & _A_SUBDIR
+			&& strcmp(findData.name, ".") == 0
+			&& strcmp(findData.name, "..") == 0
+			)    // 是否是子目录并且不为"."或".."
+			cout << findData.name << "\t<dir>\n";
+		else
+			cout << findData.name << "\t" << findData.size << endl;
+	} while (_findnext(handle, &findData) == 0);    // 查找目录中的下一个文件
+
+	cout << "Done!\n";
+	_findclose(handle);    // 关闭搜索句柄
+}
+
+int SearchPath(char *pszPath)
+{
+	int rv = 0;
+	rv = chdir(pszPath);
+	if (0 != rv)
+	{
+		printf("func chdir() error\n");
+		rv = -1;
+		return rv;
+	}
+
+	struct _finddata_t data;
+	long handle;
+	if (-1L == (handle = _findfirst("*.*", &data)))   //成功返回唯一的搜索句柄, 出错返回-1
+	{
+		return rv;
+	}
+	do 
+	{
+		if (data.attrib == _A_SUBDIR )
+		{//目录类型
+			char szBuf[1024] = {0};
+			if (strcmp(data.name, ".") != 0 && strcmp(data.name, "..") != 0)
+			{
+				sprintf(szBuf, "%s\\%s", pszPath, data.name);
+				SearchPath(szBuf);
+			}
+		}
+		else
+		{//单个文件
+			int nLen = strlen(data.name);
+			if (data.name[nLen - 1] == 'p' && data.name[nLen - 2] == 'p' &&
+				data.name[nLen - 3] == 'c' &&data.name[nLen - 4] == '.' )
+			{//过滤出所有cpp的文件
+				printf("   [%s]\n", data.name );
+				char szBuf[1024] = {0};
+				sprintf(szBuf, "%s\\%s", pszPath, data.name);
+				//GetFileLength(szBuf);
+			}    
+		}
+	} while(_findnext( handle, &data ) == 0);     //成功返回0 , 出错返回-1
+
+	_findclose( handle );     // 关闭当前句柄
+
+	return rv;
+}
+
 int main(int argc, char* argv[])
 {
 	if(argc<3) {
 		printf("use exe readpath writepath.\n");
 		return 0;
 	}
-
-	cloneFile(argv[1], argv[2]);
+	SearchPath(argv[1]);
+	//cloneFile(argv[1], argv[2]);
 
 	getchar();
 
