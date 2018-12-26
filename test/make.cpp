@@ -1,11 +1,23 @@
 // test.cpp : 定义控制台应用程序的入口点。
 //
 
-#include <stdio.h>
-#include <string.h>
-#include <io.h>
-#include <iostream>
-#include <direct.h>
+
+#include <iostream>  
+#include <stdlib.h> //_MAX_PATH, system()
+#include <stdio.h>  
+#include <string.h>  
+#include <vector>
+#include <string>
+
+#ifdef linux  
+#include <unistd.h>  
+#include <dirent.h>  
+#endif  
+#ifdef WIN32  
+#include <direct.h> //_getcwd(), _chdir()
+#include <io.h> //_finddata_t, _findfirst(), _findnext(), _findclose()
+#endif  
+using namespace std;  
 
 using namespace std;
 
@@ -40,6 +52,7 @@ int cloneFile(char *srcFile, char* destFile) {
 	return 0;
 }
 
+
 //求子串
 char* substr(const char*str, unsigned start, unsigned end)
 {
@@ -69,91 +82,125 @@ bool decideSuffix( char* filePath, char* suffix )
 		return false;
 }
 
-void listFiles(const char * dir)
+/**
+ * @function: 获取cate_dir目录下的所有文件名
+ * @param: cate_dir - string类型
+ * @result：vector<string>类型
+*/
+vector<string> getFiles(string cate_dir)
 {
-	intptr_t handle;
-	_finddata_t findData;
-
-	handle = _findfirst(dir, &findData);    // 查找目录中的第一个文件
-	if (handle == -1)
-	{
-		cout << "Failed to find first file!\n";
-		return;
-	}
-
-	do
-	{
-		if (findData.attrib & _A_SUBDIR
-			&& strcmp(findData.name, ".") == 0
-			&& strcmp(findData.name, "..") == 0
-			)    // 是否是子目录并且不为"."或".."
-			cout << findData.name << "\t<dir>\n";
-		else
-			cout << findData.name << "\t" << findData.size << endl;
-	} while (_findnext(handle, &findData) == 0);    // 查找目录中的下一个文件
-
-	cout << "Done!\n";
-	_findclose(handle);    // 关闭搜索句柄
-}
-
-int SearchPath(char *pszPath)
-{
-	int rv = 0;
-	rv = chdir(pszPath);
-	if (0 != rv)
-	{
-		printf("func chdir() error\n");
-		rv = -1;
-		return rv;
-	}
-
-	struct _finddata_t data;
-	long handle;
-	if (-1L == (handle = _findfirst("*.*", &data)))   //成功返回唯一的搜索句柄, 出错返回-1
-	{
-		return rv;
-	}
-	do 
-	{
-		if (data.attrib == _A_SUBDIR )
-		{//目录类型
-			char szBuf[1024] = {0};
-			if (strcmp(data.name, ".") != 0 && strcmp(data.name, "..") != 0)
-			{
-				sprintf(szBuf, "%s\\%s", pszPath, data.name);
-				SearchPath(szBuf);
-			}
+	vector<string> files;//存放文件名
+ 
+#ifdef WIN32
+	_finddata_t file;
+	long lf;
+	//输入文件夹路径
+	if ((lf=_findfirst(cate_dir.c_str(), &file)) == -1) {
+		cout<<cate_dir<<" not found!!!"<<endl;
+	} else {
+		while(_findnext(lf, &file) == 0) {
+			//输出文件名
+			//cout<<file.name<<endl;
+			if (strcmp(file.name, ".") == 0 || strcmp(file.name, "..") == 0)
+				continue;
+			files.push_back(file.name);
 		}
-		else
-		{//单个文件
-			int nLen = strlen(data.name);
-			if (data.name[nLen - 1] == 'p' && data.name[nLen - 2] == 'p' &&
-				data.name[nLen - 3] == 'c' &&data.name[nLen - 4] == '.' )
-			{//过滤出所有cpp的文件
-				printf("   [%s]\n", data.name );
-				char szBuf[1024] = {0};
-				sprintf(szBuf, "%s\\%s", pszPath, data.name);
-				//GetFileLength(szBuf);
-			}    
+	}
+	_findclose(lf);
+#endif
+ 
+#ifdef linux
+	DIR *dir;
+	struct dirent *ptr;
+	char base[1000];
+ 
+	if ((dir=opendir(cate_dir.c_str())) == NULL)
+        {
+		perror("Open dir error...");
+                exit(1);
+        }
+ 
+	while ((ptr=readdir(dir)) != NULL)
+	{
+		if(strcmp(ptr->d_name,".")==0 || strcmp(ptr->d_name,"..")==0)    ///current dir OR parrent dir
+		        continue;
+		else if(ptr->d_type == 8)    ///file
+			//printf("d_name:%s/%s\n",basePath,ptr->d_name);
+			files.push_back(ptr->d_name);
+		else if(ptr->d_type == 10)    ///link file
+			//printf("d_name:%s/%s\n",basePath,ptr->d_name);
+			continue;
+		else if(ptr->d_type == 4)    ///dir
+		{
+			files.push_back(ptr->d_name);
+			/*
+		        memset(base,'\0',sizeof(base));
+		        strcpy(base,basePath);
+		        strcat(base,"/");
+		        strcat(base,ptr->d_nSame);
+		        readFileList(base);
+			*/
 		}
-	} while(_findnext( handle, &data ) == 0);     //成功返回0 , 出错返回-1
-
-	_findclose( handle );     // 关闭当前句柄
-
-	return rv;
+	}
+	closedir(dir);
+#endif
+ 
+	//排序，按从小到大排序
+	//sort(files.begin(), files.end());
+	return files;
 }
 
 int main(int argc, char* argv[])
 {
-	if(argc<3) {
-		printf("use exe readpath writepath.\n");
-		return 0;
-	}
-	SearchPath(argv[1]);
+	//if(argc<3) {
+	//	printf("use exe readpath writepath.\n");
+	//	return 0;
+	//}
 	//cloneFile(argv[1], argv[2]);
+
+	char current_address[100];  
+	memset(current_address, 0, 100);  
+	getcwd(current_address, 100); //获取当前路径  
+	cout<<current_address<<endl;  
+	strcat(current_address, "\\*");  
+
+	vector<string> files=getFiles((string)current_address);  
+	for (int i=0; i<files.size(); i++)  
+	{  
+		cout<<files[i]<<endl;  
+	}  
+
+	//cout<<"Hello World"<<endl;  
+
+	cout<<"end..."<<endl;  
+	cin.get();  
 
 	getchar();
 
 	return 0;
 }
 
+
+//for linux
+//int main(void)  
+//{  
+//	DIR *dir;  
+//	char basePath[100];  
+//
+//	///get the current absoulte path  
+//	memset(basePath, '\0', sizeof(basePath));  
+//	getcwd(basePath, 999);  
+//	printf("the current dir is : %s\n",basePath);  
+//
+//
+//	cout<<endl<<endl;  
+//	vector<string> files=getFiles(basePath);  
+//	for (int i=0; i<files.size(); i++)  
+//	{  
+//		cout<<files[i]<<endl;  
+//	}  
+//
+//
+//	cout<<"end..."<<endl<<endl;  
+//	return 0;  
+//}  
