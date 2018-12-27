@@ -1,154 +1,53 @@
-// test.cpp : ¶¨Òå¿ØÖÆÌ¨Ó¦ÓÃ³ÌĞòµÄÈë¿Úµã¡£
+ï»¿// test.cpp : å®šä¹‰æ§åˆ¶å°åº”ç”¨ç¨‹åºçš„å…¥å£ç‚¹ã€‚
 //
 
 
-#include <iostream>  
-#include <stdlib.h> //_MAX_PATH, system()
-#include <stdio.h>  
-#include <string.h>  
-#include <vector>
-#include <string>
-
-#ifdef linux  
-#include <unistd.h>  
-#include <dirent.h>  
-#endif  
-#ifdef WIN32  
-#include <direct.h> //_getcwd(), _chdir()
-#include <io.h> //_finddata_t, _findfirst(), _findnext(), _findclose()
-#endif  
-using namespace std;  
+#include "FileOpera.h"
+#include<fstream>
 
 using namespace std;
 
-int cloneFile(char *srcFile, char* destFile) {
-	FILE *prFile = NULL, *pwFile = NULL;
-	if(prFile=fopen(srcFile,"rb")) 
-		printf("open read file: %s successful.\n", srcFile);
-	else {
-		printf("open read file: %s failed\n", srcFile);
-		return 0;
+void savePath(char *srcPath, string destPath){
+	string root = destPath.assign(destPath).append("\\");
+    char * distAll  = "path.txt";    //ç»“æœä¿å­˜
+    vector<string> dirs, files;           //ä¿å­˜æ–‡ä»¶è·¯å¾„ä¿¡æ¯
+    ofstream ofn(distAll);          //æ‰“å¼€æ–‡ä»¶
+    int size = 0;                   //å­˜å‚¨æ–‡ä»¶ä¸ªæ•°
+
+	//æ¸…ç©ºvector
+	while(!dirs.empty()) dirs.pop_back();
+    while(!files.empty()) files.pop_back();
+   
+
+    getAllFiles(srcPath, dirs, files);   //é€’å½’æŸ¥æ‰¾æ–‡ä»¶ä»¥åŠæ–‡ä»¶å¤¹ã€‚æ–‡ä»¶å¤¹è·¯å¾„ä¸ºfilePath
+    size = dirs.size();            //åŒ…å«æ–‡ä»¶ä¸ªæ•°
+    cout << "dirsize:" << dirs.size() << " filesize:" << files.size() << endl;
+	
+	int i = 0;
+    for (; i < size; i++) {
+		string p;
+		p.assign(root).append(dirs[i]);
+		_mkdir(p.c_str());
 	}
-
-	if(pwFile=fopen(destFile,"wb")) 
-		printf("open write file: %s successful.\n", destFile);
-	else {
-		printf("open write file: %s failed\n", destFile);
-		fclose(prFile);
-		return 0;
+	cout << "mkdir num:" << i <<endl;
+	i = 0;
+	size = files.size();
+	int count = 0;
+	for (; i < size; i++) {
+		string p;
+		p.assign(root).append(files[i]).append(".o");
+		if(cloneFile(files[i].c_str(), p.c_str())>=0)
+			count++;
+		if(count%20==0)
+			printf("count:%d\n", count);
 	}
+        //ofn << dirs[i] << endl;    //æŠŠæ–‡ä»¶è·¯å¾„ä¿å­˜
+   
 
-
-	char buffer[1024] = {0};
-	while(!feof(prFile)) {
-		int res = fread(buffer, 1, 1024, prFile);
-		fwrite(buffer, res, 1, pwFile);
-		//printf("len:%d buffer:%s\n", res, buffer);
-	}
-
-	fclose(prFile);
-	fclose(pwFile);
-
-	return 0;
+    ofn.close();                    //æ–‡ä»¶å…³é—­
+	printf("finished.\n");
 }
 
-
-//Çó×Ó´®
-char* substr(const char*str, unsigned start, unsigned end)
-{
-	unsigned n = end - start;
-	static char stbuf[256];
-	//¸´ÖÆ×îºóÈı¸ö×Ö·û£¬¼´ºó×º
-	strncpy(stbuf, str + start, n);
-	//×Ö´®×îºó¼ÓÉÏ0
-	stbuf[n] = 0;
-	return stbuf;
-}
-
-bool decideSuffix( char* filePath, char* suffix )
-{
-	char* fileExt;
-	char *ptr, c = '.';
-	//×îºóÒ»¸ö³öÏÖcµÄÎ»ÖÃ
-	ptr = strrchr(filePath, c);
-	//ÓÃÖ¸ÕëÏà¼õ ÇóµÃË÷Òı
-	int pos = ptr-filePath;
-	//»ñÈ¡ºó×º
-	fileExt=substr(filePath, pos+1, strlen(filePath));
-	//ÅĞ¶Ïºó×ºÊÇ·ñÏàÍ¬
-	if (0==strcmp(fileExt, suffix))
-		return true;
-	else
-		return false;
-}
-
-/**
- * @function: »ñÈ¡cate_dirÄ¿Â¼ÏÂµÄËùÓĞÎÄ¼şÃû
- * @param: cate_dir - stringÀàĞÍ
- * @result£ºvector<string>ÀàĞÍ
-*/
-vector<string> getFiles(string cate_dir)
-{
-	vector<string> files;//´æ·ÅÎÄ¼şÃû
- 
-#ifdef WIN32
-	_finddata_t file;
-	long lf;
-	//ÊäÈëÎÄ¼ş¼ĞÂ·¾¶
-	if ((lf=_findfirst(cate_dir.c_str(), &file)) == -1) {
-		cout<<cate_dir<<" not found!!!"<<endl;
-	} else {
-		while(_findnext(lf, &file) == 0) {
-			//Êä³öÎÄ¼şÃû
-			//cout<<file.name<<endl;
-			if (strcmp(file.name, ".") == 0 || strcmp(file.name, "..") == 0)
-				continue;
-			files.push_back(file.name);
-		}
-	}
-	_findclose(lf);
-#endif
- 
-#ifdef linux
-	DIR *dir;
-	struct dirent *ptr;
-	char base[1000];
- 
-	if ((dir=opendir(cate_dir.c_str())) == NULL)
-        {
-		perror("Open dir error...");
-                exit(1);
-        }
- 
-	while ((ptr=readdir(dir)) != NULL)
-	{
-		if(strcmp(ptr->d_name,".")==0 || strcmp(ptr->d_name,"..")==0)    ///current dir OR parrent dir
-		        continue;
-		else if(ptr->d_type == 8)    ///file
-			//printf("d_name:%s/%s\n",basePath,ptr->d_name);
-			files.push_back(ptr->d_name);
-		else if(ptr->d_type == 10)    ///link file
-			//printf("d_name:%s/%s\n",basePath,ptr->d_name);
-			continue;
-		else if(ptr->d_type == 4)    ///dir
-		{
-			files.push_back(ptr->d_name);
-			/*
-		        memset(base,'\0',sizeof(base));
-		        strcpy(base,basePath);
-		        strcat(base,"/");
-		        strcat(base,ptr->d_nSame);
-		        readFileList(base);
-			*/
-		}
-	}
-	closedir(dir);
-#endif
- 
-	//ÅÅĞò£¬°´´ÓĞ¡µ½´óÅÅĞò
-	//sort(files.begin(), files.end());
-	return files;
-}
 
 int main(int argc, char* argv[])
 {
@@ -156,25 +55,10 @@ int main(int argc, char* argv[])
 	//	printf("use exe readpath writepath.\n");
 	//	return 0;
 	//}
+	//_mkdir(argv[2]);
 	//cloneFile(argv[1], argv[2]);
 
-	char current_address[100];  
-	memset(current_address, 0, 100);  
-	getcwd(current_address, 100); //»ñÈ¡µ±Ç°Â·¾¶  
-	cout<<current_address<<endl;  
-	strcat(current_address, "\\*");  
-
-	vector<string> files=getFiles((string)current_address);  
-	for (int i=0; i<files.size(); i++)  
-	{  
-		cout<<files[i]<<endl;  
-	}  
-
-	//cout<<"Hello World"<<endl;  
-
-	cout<<"end..."<<endl;  
-	cin.get();  
-
+	savePath("file", "gen");
 	getchar();
 
 	return 0;

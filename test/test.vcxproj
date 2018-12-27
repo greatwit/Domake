@@ -79,7 +79,11 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FileOpera.cpp" />
     <ClCompile Include="make.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FileOpera.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
