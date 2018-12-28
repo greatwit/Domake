@@ -1,39 +1,5 @@
 ﻿#include "FileOpera.h"
 
-int cloneFile(const char *srcFile, const char* destFile) {
-	int rest = -1;
-	FILE *prFile = NULL, *pwFile = NULL;
-	if(prFile=fopen(srcFile,"rb")) {
-		//printf("open read file: %s successful.\n", srcFile);
-	}
-	else {
-		printf("open read file: %s failed\n", srcFile);
-		return rest;
-	}
-
-	if(pwFile=fopen(destFile,"wb")){ 
-		//printf("open write file: %s successful.\n", destFile);
-	}
-	else {
-		printf("open write file: %s failed\n", destFile);
-		fclose(prFile);
-		return rest;
-	}
-
-
-	char buffer[1024] = {0};
-	while(!feof(prFile)) {
-		int res = fread(buffer, 1, 1024, prFile);
-		fwrite(buffer, res, 1, pwFile);
-		//printf("len:%d buffer:%s\n", res, buffer);
-	}
-
-	fclose(prFile);
-	fclose(pwFile);
-
-	return 0;
-}
-
 
 //求子串
 char* substr(const char*str, unsigned start, unsigned end)
@@ -157,4 +123,132 @@ void getAllFiles( string path, vector<string>& dirs, vector<string>& files)
         }while(_findnext(hFile, &fileinfo) == 0);  //寻找下一个，成功返回0，否则-1
         _findclose(hFile); 
     } 
+}
+
+/////////////////////////////////////////////demonstration/////////////////////////////////////////////////////////
+
+//获取文件后缀名
+string getFileExtendName(string filename) {
+	return filename.substr(filename.find_last_of('.') + 1);
+}
+
+//return 1 is true, 0 is false
+int judgeFileSuffix(string filename, string suffix) {
+	string curSuff = filename.substr(filename.find_last_of('.') + 1);
+	return !curSuff.compare(suffix);
+}
+
+string getPureFilename(string originFilename) {
+	return originFilename.substr(0, originFilename.rfind("."));
+}
+
+int changeFilename(const char*originName, const char*changedName ) {
+	return !rename(originName, changedName);
+}
+
+////////////////////////////////////////////////using//////////////////////////////////////////////////////////////
+
+//clone one file to new dir path and change file name
+int cloneFile(const char *srcFile, const char* destFile) {
+	int rest = -1;
+	FILE *prFile = NULL, *pwFile = NULL;
+	if(prFile=fopen(srcFile,"rb")) {
+		//printf("open read file: %s successful.\n", srcFile);
+	}
+	else {
+		printf("open read file: %s failed\n", srcFile);
+		return rest;
+	}
+
+	if(pwFile=fopen(destFile,"wb")){ 
+		//printf("open write file: %s successful.\n", destFile);
+	}
+	else {
+		printf("open write file: %s failed\n", destFile);
+		fclose(prFile);
+		return rest;
+	}
+
+
+	char buffer[1024] = {0};
+	while(!feof(prFile)) {
+		int res = fread(buffer, 1, 1024, prFile);
+		fwrite(buffer, res, 1, pwFile);
+		//printf("len:%d buffer:%s\n", res, buffer);
+	}
+
+	fclose(prFile);
+	fclose(pwFile);
+
+	return 0;
+}
+
+//copy all subdirs and files from one dir to other
+void copyFilesToNewDir(char *srcDir, string destDir){
+	string root = destDir.assign(destDir).append("\\");
+	char * distAll  = "path.txt";    //结果保存
+	vector<string> dirs, files;           //保存文件路径信息
+	//ofstream ofn(distAll);          //打开文件
+	int size = 0;                   //存储文件个数
+
+	//清空vector
+	while(!dirs.empty()) dirs.pop_back();
+	while(!files.empty()) files.pop_back();
+
+
+	getAllFiles(srcDir, dirs, files);   //递归查找文件以及文件夹。文件夹路径为filePath
+	size = dirs.size();            //包含文件个数
+	cout << "dirsize:" << dirs.size() << " filesize:" << files.size() << endl;
+
+	int i = 0;
+	for (; i < size; i++) {
+		string p;
+		p.assign(root).append(dirs[i]);
+		_mkdir(p.c_str());
+	}
+	cout << "mkdir num:" << i <<endl;
+	i = 0;
+	size = files.size();
+	int count = 0;
+	for (; i < size; i++) {
+		string p;
+		p.assign(root).append(files[i]).append(".o");
+		if(cloneFile(files[i].c_str(), p.c_str())>=0)
+			count++;
+		if(count%20==0)
+			printf("count:%d\n", count);
+	}
+	//ofn << dirs[i] << endl;    //把文件路径保存
+
+
+	//ofn.close();                    //文件关闭
+	printf("finished.\n");
+}
+
+//change all files name to specify suffix name,e.g:"o"
+void changeDirAllFilesName(char*rootDirPath, string extName) {
+	vector<string> dirs, files;           //保存文件路径信息
+	//清空vector
+	while(!dirs.empty()) dirs.pop_back();
+	while(!files.empty()) files.pop_back();
+
+	getAllFiles(rootDirPath, dirs, files);   //递归查找文件以及文件夹。文件夹路径为filePath
+	int size = files.size();
+	printf("--------------file size:%d---------\n", size);
+	int count = 0;
+	for (int i=0; i < size; i++) {
+		string filename = files[i];
+		if(judgeFileSuffix(filename, extName)) {
+			string pureName = filename.substr(0, filename.rfind("."));
+			if(!rename(filename.c_str(), pureName.c_str()))
+				count++;
+			else
+				printf("rename failed filename:%s.\n", filename.c_str());
+
+			if(count%20==0)
+				printf("count:%d\n", count);
+		}else
+			printf("filename %s is not suffix name:%s\n", filename.c_str(), extName.c_str());
+	}
+	printf("finish...count:%d\n", count);
 }
