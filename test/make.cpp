@@ -3,11 +3,13 @@
 
 
 #include "FileOpera.h"
-#include<fstream>
+#include <fstream>
 
 using namespace std;
 
-
+void usage() {
+	printf("Use exe -e/d rootpath.\nNeed create gen and root directory.\n");
+}
 
 int main(int argc, char* argv[])
 {
@@ -16,13 +18,17 @@ int main(int argc, char* argv[])
 	//	return 0;
 	//}
 
-	if(argc<2){
-		printf("use exe rootpath.\n");
+	if(argc<3){
+		usage();
 		return 0;
 	}
+	if(!strcmp(argv[1], "-e")) 
+		copyFilesToNewDir(argv[2], "gen");
 
-	changeDirAllFilesName(argv[1], "o");
-
+	else if(!strcmp(argv[1], "-d"))
+		changeDirAllFilesName(argv[2], "o");
+	else
+		usage();
 
 
 	getchar();

@@ -213,8 +213,16 @@ void copyFilesToNewDir(char *srcDir, string destDir){
 	for (; i < size; i++) {
 		string p;
 		p.assign(root).append(files[i]).append(".o");
-		if(cloneFile(files[i].c_str(), p.c_str())>=0)
+		if(cloneFile(files[i].c_str(), p.c_str())>=0) {
 			count++;
+			//string pureName = p.substr(0, p.rfind("."));
+			//if(!rename(p.c_str(), pureName.c_str()))
+			//	count++;
+			//else
+			//	printf("rename filename:%s fialed\n", files[i].c_str());
+		}else
+			printf("clone filename:%s fialed\n", files[i].c_str());
+
 		if(count%20==0)
 			printf("count:%d\n", count);
 	}
@@ -222,7 +230,7 @@ void copyFilesToNewDir(char *srcDir, string destDir){
 
 
 	//ofn.close();                    //文件关闭
-	printf("finished.\n");
+	printf("finished. total:%d \n", i);
 }
 
 //change all files name to specify suffix name,e.g:"o"
