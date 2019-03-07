@@ -173,6 +173,10 @@ int cloneFile(const char *srcFile, const char* destFile) {
 	char buffer[1024] = {0};
 	while(!feof(prFile)) {
 		int res = fread(buffer, 1, 1024, prFile);
+		//for(int i=0;i<res;i++) {
+		//	char cc = buffer[i];
+		//	buffer[i] = (cc>>4&0x0f)|(cc<<4&0xf0);
+		//}
 		fwrite(buffer, res, 1, pwFile);
 		//printf("len:%d buffer:%s\n", res, buffer);
 	}
@@ -197,7 +201,7 @@ void copyFilesToNewDir(char *srcDir, string destDir){
 
 
 	getAllFiles(srcDir, dirs, files);   //递归查找文件以及文件夹。文件夹路径为filePath
-	size = dirs.size();            //包含文件个数
+	size = dirs.size();					//包含文件个数
 	cout << "dirsize:" << dirs.size() << " filesize:" << files.size() << endl;
 
 	int i = 0;
@@ -211,9 +215,16 @@ void copyFilesToNewDir(char *srcDir, string destDir){
 	size = files.size();
 	int count = 0;
 	for (; i < size; i++) {
-		string p;
-		p.assign(root).append(files[i]).append(".o");
-		if(cloneFile(files[i].c_str(), p.c_str())>=0) {
+		string lastname;
+		string filename = files[i];
+		string suff		= filename.substr(filename.find_last_of('.') + 1);
+		if (!strcmp(suff.c_str(), "sdf") || !strcmp(suff.c_str(), "ncb") || 
+			!strcmp(suff.c_str(), "pdb") || !strcmp(suff.c_str(), "pch")) {
+				printf("%s file.\n", suff.c_str());
+				continue;
+		}
+		lastname.assign(root).append(files[i]).append(".o");
+		if(cloneFile(files[i].c_str(), lastname.c_str())>=0) {
 			count++;
 			//string pureName = p.substr(0, p.rfind("."));
 			//if(!rename(p.c_str(), pureName.c_str()))
@@ -230,7 +241,7 @@ void copyFilesToNewDir(char *srcDir, string destDir){
 
 
 	//ofn.close();                    //文件关闭
-	printf("finished. total:%d \n", i);
+	printf("finished. total:%d count:%d\n", size, count);
 }
 
 //change all files name to specify suffix name,e.g:"o"
