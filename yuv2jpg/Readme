@@ -1,0 +1,4 @@
+export LD_LIBRARY_PATH=/home/great/turbo/lib
+gcc y2j.c -o y2j -I/home/great/turbo/include -L/home/great/turbo/lib -ljpeg
+./y2j /home/great/project/python/20190625/ /home/great/project/python/classjpg/20190625
+
